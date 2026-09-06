@@ -2,6 +2,7 @@
 
 // مسارات الـ API
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChildController;
 use App\Http\Controllers\LessonController;
@@ -20,6 +21,18 @@ use App\Http\Controllers\MinistryController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ConsultationController;
+
+// فحص صحّة الخدمة — عام بدون توكن، يستخدمه فحص النشر (app.json)
+// يتحقق من الاتصال بقاعدة البيانات؛ يعيد 503 إذا تعذّر الوصول إليها
+// حتى يفشل النشر بسرعة بدل أن يعمل التطبيق بلا جداول.
+Route::get('/health', function () {
+    try {
+        DB::connection()->getPdo();
+        return response()->json(['status' => 'ok', 'db' => 'connected']);
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'db' => 'unavailable'], 503);
+    }
+});
 
 // المصادقة (بدون توكن)
 Route::post('/auth/register', [AuthController::class, 'register']);
