@@ -15,6 +15,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // One-time reconciliation: this app's authoritative `users` table and its
+        // domain `sessions` table live in edubridge_schema.sql, not in Laravel's
+        // default auth migration. If an earlier deploy created Laravel's default
+        // tables, drop them so the canonical schema below builds the correct
+        // structures. On a fresh database these are harmless no-ops.
+        DB::unprepared('DROP TABLE IF EXISTS sessions, password_reset_tokens, users CASCADE;');
+
         DB::unprepared(file_get_contents(base_path('edubridge_schema.sql')));
 
         if (DB::table('users')->count() === 0) {
