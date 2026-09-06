@@ -1,0 +1,17 @@
+{
+    "name": "edubridge-api",
+    "description": "EduBridge API (Laravel). Runs on PostgreSQL; the hosting platform injects the connection as DATABASE_URL.",
+    "healthchecks": {
+        "web": [
+            {
+                "type": "startup",
+                "name": "api health",
+                "description": "Verifies the app boots and can reach its database",
+                "path": "/api/health",
+                "attempts": 5,
+                "timeout": 10,
+                "initialDelay": 5
+            }
+        ]
+    }
+}
