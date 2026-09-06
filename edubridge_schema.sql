@@ -11,7 +11,7 @@
 -- ============================================================
 
 -- المستخدمون: كل مين بيسجّل دخول (أهل / معلّم / مختص / أدمن)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id            SERIAL PRIMARY KEY,
     name          VARCHAR(100) NOT NULL,
     email         VARCHAR(150) NOT NULL UNIQUE,
@@ -23,14 +23,14 @@ CREATE TABLE users (
 );
 
 -- أنواع الإعاقة (توحّد، صعوبات تعلّم، إعاقة سمعية ...)
-CREATE TABLE disability_types (
+CREATE TABLE IF NOT EXISTS disability_types (
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(80) NOT NULL UNIQUE,
     description TEXT
 );
 
 -- المؤسسات الداعمة
-CREATE TABLE organizations (
+CREATE TABLE IF NOT EXISTS organizations (
     id      SERIAL PRIMARY KEY,
     name    VARCHAR(150) NOT NULL,
     contact VARCHAR(150),
@@ -38,7 +38,7 @@ CREATE TABLE organizations (
 );
 
 -- الأطفال (ملف تعريفي — الطفل ما بيسجّل دخول)
-CREATE TABLE children (
+CREATE TABLE IF NOT EXISTS children (
     id                 SERIAL PRIMARY KEY,
     name               VARCHAR(100) NOT NULL,
     birth_date         DATE,
@@ -63,7 +63,7 @@ CREATE TABLE children (
 );
 
 -- التقييمات: يُنشئها المعلّم/المختص، ويعرضها ولي الأمر ضمن تفاصيل الطفل
-CREATE TABLE evaluations (
+CREATE TABLE IF NOT EXISTS evaluations (
     id                   SERIAL PRIMARY KEY,
     child_id             INT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     evaluator_id         INT REFERENCES users(id) ON DELETE SET NULL,
@@ -80,14 +80,14 @@ CREATE TABLE evaluations (
 );
 
 -- ربط الطفل بأوليّاء أمره (many-to-many)
-CREATE TABLE child_parent (
+CREATE TABLE IF NOT EXISTS child_parent (
     child_id  INT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     parent_id INT NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
     PRIMARY KEY (child_id, parent_id)
 );
 
 -- الدروس
-CREATE TABLE lessons (
+CREATE TABLE IF NOT EXISTS lessons (
     id                 SERIAL PRIMARY KEY,
     title              VARCHAR(150) NOT NULL,
     content            TEXT,
@@ -97,7 +97,7 @@ CREATE TABLE lessons (
 );
 
 -- تقدّم الطفل بكل درس
-CREATE TABLE progress (
+CREATE TABLE IF NOT EXISTS progress (
     id           SERIAL PRIMARY KEY,
     child_id     INT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     lesson_id    INT NOT NULL REFERENCES lessons(id)  ON DELETE CASCADE,
@@ -114,7 +114,7 @@ CREATE TABLE progress (
 -- ============================================================
 
 -- الوسائط المرتبطة بالدروس (صورة / فيديو / صوت)
-CREATE TABLE media (
+CREATE TABLE IF NOT EXISTS media (
     id        SERIAL PRIMARY KEY,
     lesson_id INT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
     type      VARCHAR(10) NOT NULL CHECK (type IN ('image', 'video', 'audio')),
@@ -122,7 +122,7 @@ CREATE TABLE media (
 );
 
 -- جلسات المختص مع الطفل
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     id            SERIAL PRIMARY KEY,
     specialist_id INT NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
     child_id      INT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
@@ -132,7 +132,7 @@ CREATE TABLE sessions (
 );
 
 -- ملاحظات المعلّم / المختص عن الطفل
-CREATE TABLE notes (
+CREATE TABLE IF NOT EXISTS notes (
     id         SERIAL PRIMARY KEY,
     author_id  INT NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
     child_id   INT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
@@ -141,7 +141,7 @@ CREATE TABLE notes (
 );
 
 -- الإشعارات
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     id         SERIAL PRIMARY KEY,
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title      VARCHAR(150),
@@ -155,14 +155,14 @@ CREATE TABLE notifications (
 -- ============================================================
 -- 3) فهارس تحسّن الأداء  
 -- ============================================================
-CREATE INDEX idx_children_disability   ON children(disability_type_id);
-CREATE INDEX idx_children_assigned_teacher ON children(assigned_teacher_id);
-CREATE INDEX idx_evaluations_child     ON evaluations(child_id);
-CREATE INDEX idx_lessons_disability    ON lessons(disability_type_id);
-CREATE INDEX idx_progress_child        ON progress(child_id);
-CREATE INDEX idx_sessions_child        ON sessions(child_id);
-CREATE INDEX idx_notes_child           ON notes(child_id);
-CREATE INDEX idx_notifications_user    ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_children_disability   ON children(disability_type_id);
+CREATE INDEX IF NOT EXISTS idx_children_assigned_teacher ON children(assigned_teacher_id);
+CREATE INDEX IF NOT EXISTS idx_evaluations_child     ON evaluations(child_id);
+CREATE INDEX IF NOT EXISTS idx_lessons_disability    ON lessons(disability_type_id);
+CREATE INDEX IF NOT EXISTS idx_progress_child        ON progress(child_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_child        ON sessions(child_id);
+CREATE INDEX IF NOT EXISTS idx_notes_child           ON notes(child_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user    ON notifications(user_id);
 
 
 -- ============================================================
