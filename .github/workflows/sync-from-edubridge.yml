@@ -1,0 +1,56 @@
+name: Sync from EduBridge monorepo
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/sync-from-edubridge.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-from-edubridge
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          path: target
+          fetch-depth: 0
+
+      - name: Checkout EduBridge monorepo
+        uses: actions/checkout@v4
+        with:
+          repository: EduBridge-Team/EduBridge
+          ref: main
+          path: source
+          fetch-depth: 1
+
+      - name: Sync API from monorepo
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            source/edubridge-api-laravel/ target/
+
+      - name: Commit synchronized files
+        shell: bash
+        working-directory: target
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'Already synchronized.'
+            exit 0
+          fi
+          git commit -m 'chore: sync API from EduBridge monorepo'
+          git push origin HEAD:main
