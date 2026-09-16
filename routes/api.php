@@ -2,7 +2,6 @@
 
 // مسارات الـ API
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChildController;
 use App\Http\Controllers\LessonController;
@@ -21,18 +20,8 @@ use App\Http\Controllers\MinistryController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ConsultationController;
-
-// فحص صحّة الخدمة — عام بدون توكن، يستخدمه فحص النشر (app.json)
-// يتحقق من الاتصال بقاعدة البيانات؛ يعيد 503 إذا تعذّر الوصول إليها
-// حتى يفشل النشر بسرعة بدل أن يعمل التطبيق بلا جداول.
-Route::get('/health', function () {
-    try {
-        DB::connection()->getPdo();
-        return response()->json(['status' => 'ok', 'db' => 'connected']);
-    } catch (\Throwable $e) {
-        return response()->json(['status' => 'error', 'db' => 'unavailable'], 503);
-    }
-});
+use App\Http\Controllers\AssistantController;
+use App\Http\Controllers\ConversationController;
 
 // المصادقة (بدون توكن)
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -44,10 +33,23 @@ Route::middleware('auth.jwt')->group(function () {
     // مثال على مسار محمي — يعيد حمولة التوكن
     Route::get('/me', [AuthController::class, 'me']);
 
+    // مساعد «نور» الذكي — محمي ومحدود الطلبات لحماية الأطفال والتكلفة
+    Route::post('/assistant/chat', [AssistantController::class, 'chat'])
+        ->middleware('throttle:20,1');
+
+    // المحادثات بين ولي الأمر والفريق التعليمي، وبين أعضاء الفريق
+    Route::get('/conversation-users', [ConversationController::class, 'users']);
+    Route::get('/conversations', [ConversationController::class, 'index']);
+    Route::post('/conversations', [ConversationController::class, 'store'])
+        ->middleware('throttle:20,1');
+    Route::get('/conversations/{conversationId}/messages', [ConversationController::class, 'messages']);
+    Route::post('/conversations/{conversationId}/messages', [ConversationController::class, 'send'])
+        ->middleware('throttle:60,1');
+
     // إدارة المستخدمين — لوحة التحكم الإدارية
     // القائمة متاحة للمعلّم/المختص (المعلّمون فقط) لتعيين معلّم للطفل — إصلاح البطاقة 12
     Route::get('/users', [UserController::class, 'index'])
-        ->middleware('role:teacher,specialist,admin,institution');
+        ->middleware('role:parent,teacher,specialist,admin,ministry,institution');
     Route::put('/users/{id}', [UserController::class, 'update'])
         ->middleware('role:admin');
     // حذف مستخدم (أدمن) — البطاقة 11
@@ -85,6 +87,19 @@ Route::middleware('auth.jwt')->group(function () {
     Route::get('/ministry/lessons', [MinistryController::class, 'lessons'])
         ->middleware('role:ministry,admin');
     Route::put('/ministry/lessons/{id}', [MinistryController::class, 'review'])
+        ->middleware('role:ministry,admin');
+
+
+    // عرض كل المستخدمين للوزارة (عرض فقط)
+    Route::get('/ministry/users', [MinistryController::class, 'users'])
+        ->middleware('role:ministry,admin');
+
+    // عرض كل الأطفال للوزارة (عرض فقط)
+    Route::get('/ministry/children', [MinistryController::class, 'children'])
+        ->middleware('role:ministry,admin');
+
+    // إحصائيات لوحة الوزارة (نظرة عامة)
+    Route::get('/ministry/stats', [MinistryController::class, 'stats'])
         ->middleware('role:ministry,admin');
 
     // الدعم الفني والشكاوى (البطاقة 11)
